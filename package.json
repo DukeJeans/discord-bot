@@ -1,0 +1,11 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot built and maintained by Nicholas Jeans",
+  "main": "app.js",
+  "scripts": {
+    "run" : "npm app.js"
+  },
+  "author": "Nicholas Jeans",
+  "license": "ISC"
+}
