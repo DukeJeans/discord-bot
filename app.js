@@ -1,24 +1,55 @@
-import { REST } from '@discordjs/rest';
-import { WebSocketManager } from '@discordjs/ws';
-import { GatewayDispatchEvents, GatewayIntentBits, InteractionType, MessageFlags, Client } from '@discordjs/core';
+const { token, clientId, guildId } = require('./config.json');
+const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const fileSystem = require('node:fs');
+const pathUtility = require('node:path');
 
-const rest = new REST({ version: '10' }).setToken(token);
-const gateway = new WebSocketManager({
-	token,
-	intents: GatewayIntentBits.GuildMessages | GatewayIntentBits.MessageContent,
-	rest,
-});
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+client.commands = new Collection();
 
-const client = new Client({ rest, gateway });
+const commandsPath = pathUtility.join(__dirname, 'commands');
+const commandFiles = fileSystem.readdirSync(commandsPath).filter(file =>  file.endsWith('.js'));
 
-client.on(GatewayDispatchEvents.InteractionCreate, async ({ data: interaction, api }) => {
-	if (interaction.type !== InteractionType.ApplicationCommand || interaction.data.name !== 'ping') {
+for (const file of commandFiles) {
+	const filePath = pathUtility.join(commandsPath, file);
+	const selectedCommand = require(filePath);
+	if('data' in selectedCommand && 'execute' in selectedCommand) {
+		client.commands.set(selectedCommand.data.name, selectedCommand);
+	}
+	else {
+		console.log(`$$$ Error: Command at ${filePath} is missing a required property. This has prevented its addition to the command collection.`);
+	}
+}
+
+/*---------------------------------------------*/
+
+client.on(Events.InteractionCreate, async interation => {
+	if(!interation.isChatInputCommand()) return;
+	console.log(interation);
+
+	const command = interation.client.commands.get(interation.commandName);
+
+	if(!command) {
+		console.error(`No command matching ${interaction.commandName} was found.`);
 		return;
 	}
 
-	await api.interactions.reply(interaction.id, interaction.token, { content: 'Pong!', flags: MessageFlags.Ephemeral });
+	try {
+		await command.execute(interation);
+	} 
+	catch(error) {
+		console.error(error);
+		if (interaction.replied || interaction.deferred) {
+			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+		} else {
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+		}
+	}
+})
+
+/*---------------------------------------------*/
+
+client.once(Events.ClientReady, c => {
+	console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
-client.once(GatewayDispatchEvents.Ready, () => console.log('Discord bot is online.'));
-
-gateway.connect();
+client.login(token);
