@@ -4,8 +4,15 @@
   "description": "Discord bot built and maintained by Nicholas Jeans",
   "main": "app.js",
   "scripts": {
-    "run" : "npm app.js"
+    "run": "node app.js"
   },
   "author": "Nicholas Jeans",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.11.0",
+    "pnpm": "^8.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.40.0"
+  }
 }
